@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N-TROUS Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #007bff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            background: #007bff;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        main {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        #coinAnimation {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            border-radius: 50%;
+            box-shadow: 0px 0px 20px rgba(0, 114, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 20px auto;
+        }
+
+        #coinAnimation:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 0px 30px rgba(0, 114, 255, 0.8);
+        }
+
+        #coinAnimation:active {
+            transform: scale(1.2);
+            box-shadow: 0px 0px 40px rgba(0, 114, 255, 0.9);
+        }
+
+        #coinCount {
+            font-size: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .input-group {
+            margin: 10px 0;
+        }
+
+        #usernameAlert {
+            color: green;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.7.1/web3.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-database-compat.js"></script>
+    <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+            databaseURL: "https://airdropnitrous-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Koneksi ke jaringan Polygon melalui Infura
+        const web3 = new Web3(new Web3.providers.HttpProvider("https://polygon-mainnet.infura.io/v3/4b83836820944bf0bba486179ee4dbfd"));
+
+        // Smart contract address dan ABI
+        const contractAddress = "0xd863ba508ce896960D2a885eAFD84Bb5179B1f5D";
+        const contractABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"rewardAmount","type":"uint256"}],"name":"AirdropDistributed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RewardAccumulated","type":"event"},{"inputs":[],"name":"accumulateReward","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"airdropDate","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"airdropDistributed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balances","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"distributeAirdrop","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"participants","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"rewardPerClick","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"rewardsAccumulated","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+        const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            let coinCount = parseInt(localStorage.getItem('coinCount')) || 0;
+            document.getElementById('coinCount').innerText = 'GCO: ' + coinCount;
+
+            document.getElementById('coinAnimation').addEventListener('click', function() {
+                coinCount++;
+                document.getElementById('coinCount').innerText = 'GCO: ' + coinCount;
+                localStorage.setItem('coinCount', coinCount);
+                updateLeaderboard();
+            });
+
+            document.getElementById('startGame').addEventListener('click', function() {
+                alert('Permainan dimulai! Ketuk koin untuk menghasilkan GCO!');
+            });
+
+            document.querySelectorAll('nav ul li a').forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    showPage(event.target.getAttribute('data-page'));
+                });
+            });
+
+            function showPage(page) {
+                document.querySelectorAll('.page-section').forEach(section => section.style.display = 'none');
+                document.getElementById(page).style.display = 'block';
+            }
+
+            function updateLeaderboard() {
+                const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+                const username = localStorage.getItem('username') || 'Pengguna';
+
+                leaderboard.push({ username: username, score: coinCount });
+                leaderboard.sort((a, b) => b.score - a.score);
+
+                localStorage.setItem('leaderboard', JSON.stringify(leaderboard.slice(0, 10)));
+
+                const leaderboardList = document.getElementById('leaderboardList');
+                leaderboardList.innerHTML = leaderboard.map(entry => `<p>${entry.username}: ${entry.score}</p>`).join('');
+            }
+
+            showPage('home');
+
+            async function connectWallet() {
+                if (window.ethereum) {
+                    window.web3 = new Web3(window.ethereum);
+                    try {
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        const accounts = await web3.eth.getAccounts();
+                        const currentAccount = accounts[0];
+
+                        sessionStorage.setItem('connectedAccount', currentAccount);
+                        document.getElementById('walletAddress').innerText = "Wallet Tersambung: " + currentAccount;
+                        alert('Wallet berhasil tersambung: ' + currentAccount);
+                    } catch (error) {
+                        alert('Gagal menghubungkan ke wallet');
+                    }
+                } else {
+                    alert('MetaMask tidak terdeteksi! Silakan instal MetaMask.');
+                }
+            }
+
+            async function signTransaction() {
+                const connectedAccount = sessionStorage.getItem('connectedAccount');
+                if (window.ethereum && connectedAccount) {
+                    try {
+                        const message = "Konfirmasi transaksi di N-TROUS Game";
+                        const signature = await web3.eth.personal.sign(message, connectedAccount);
+                        alert('Tanda tangan berhasil dibuat: ' + signature);
+                    } catch (error) {
+                        alert('Gagal membuat tanda tangan');
+                    }
+                } else {
+                    alert('Silakan hubungkan wallet terlebih dahulu.');
+                }
+            }
+
+            async function checkBalance() {
+                const connectedAccount = sessionStorage.getItem('connectedAccount');
+                if (connectedAccount) {
+                    try {
+                        const balance = await contract.methods.balanceOf(connectedAccount).call();
+                        alert(`Saldo Anda: ${balance} GCO`);
+                    } catch (error) {
+                        alert('Gagal mendapatkan saldo');
+                    }
+                } else {
+                    alert('Silakan hubungkan wallet terlebih dahulu.');
+                }
+            }
+
+            async function getAirdropDate() {
+                try {
+                    const airdropTimestamp = await contract.methods.airdropDate().call();
+                    const airdropDate = new Date(airdropTimestamp * 1000);
+                    alert(`Tanggal Airdrop: ${airdropDate.toLocaleString()}`);
+                } catch (error) {
+                    alert('Gagal mendapatkan tanggal airdrop');
+                }
+            }
+
+            async function distributeAirdrop() {
+                const connectedAccount = sessionStorage.getItem('connectedAccount');
+                if (connectedAccount) {
+                    try {
+                        await contract.methods.distributeAirdrop().send({ from: connectedAccount });
+                        alert('Airdrop berhasil didistribusikan!');
+                    } catch (error) {
+                        alert('Gagal mendistribusikan airdrop');
+                    }
+                } else {
+                    alert('Silakan hubungkan wallet terlebih dahulu.');
+                }
+            }
+
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+            document.getElementById('signTransaction').addEventListener('click', signTransaction);
+            document.getElementById('checkBalance').addEventListener('click', checkBalance);
+            document.getElementById('getAirdropDate').addEventListener('click', getAirdropDate);
+            document.getElementById('distributeAirdrop').addEventListener('click', distributeAirdrop);
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Selamat Datang di N-TROUS Game</h1>
+        <nav>
+            <ul>
+                <li><a href="#" data-page="home">Home</a></li>
+                <li><a href="#" data-page="airdrop">Airdrop</a></li>
+                <li><a href="https://t.me/CryptoAirdropOpen" target="_blank">Telegram</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="page-section">
+            <h2>Mulai Permainan</h2>
+            <button id="startGame">Mulai Permainan</button>
+            <div id="coinAnimation">Klik!</div>
+            <div id="coinCount">GCO: 0</div>
+        </section>
+
+        <section id="airdrop" class="page-section">
+            <h2>Airdrop</h2>
+            <div class="input-group">
+                <button id="connectWallet">Sambungkan Wallet</button>
+                <p id="walletAddress">Wallet Tersambung: -</p>
+            </div>
+            <div class="input-group">
+                <button id="signTransaction">Tandatangani Transaksi</button>
+            </div>
+            <div class="input-group">
+                <button id="checkBalance">Cek Saldo GCO</button>
+            </div>
+            <div class="input-group">
+                <button id="getAirdropDate">Lihat Tanggal Airdrop</button>
+            </div>
+            <div class="input-group">
+                <button id="distributeAirdrop">Distribusikan Airdrop</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 N-TROUS Game. All rights reserved.</p>
+    </footer>
+</body>
+</html>
